@@ -8,6 +8,7 @@ import Explore from "./Pages/Explore";
 import Jobs from "./Pages/Jobs";
 import Chat from "./Pages/Chat";
 import Profile from "./Pages/Profile";
+import ProfileEdit from "./Pages/ProfileEdit";
 import BottomNav from "./Components/BottomNav";
 import Navbar from "./Components/Navbar";
 
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile-edit" element={<ProfileEdit />} />
       </Routes>
 
       {/* Bottom Navigation */}
