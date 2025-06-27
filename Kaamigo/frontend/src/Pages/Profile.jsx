@@ -1,251 +1,152 @@
-import React, { useState } from "react";
-import { FaEdit, FaSave, FaMapMarkerAlt, FaSearch } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaEdit, FaStar, FaMapMarkerAlt, FaPhone, FaEnvelope, FaBriefcase, FaBirthdayCake } from "react-icons/fa";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 const Profile = () => {
-  const [showDetails, setShowDetails] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [manualCityInput, setManualCityInput] = useState("");
-  const [citySuggestions, setCitySuggestions] = useState([]);
-
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState({
-    name: "Ramesh Kumar",
-    skill: "Electrician",
-    rating: "4.7",
-    phone: "9876543210",
-    email: "ramesh@example.com",
-    experience: "5 years",
-    age: 30,
-    location: "Patna, Bihar",
+    name: "",
+    skill: "",
+    rating: "",
+    phone: "",
+    email: "",
+    experience: "",
+    age: "",
+    location: "",
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData({ ...profileData, [name]: value });
-  };
-
-  const handleSave = () => {
-    setIsEditing(false);
-    alert("✅ Profile updated successfully!");
-  };
-
-  // 🔴 Current Location
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation not supported.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-          );
-          const data = await res.json();
-          const address = data.address;
-
-          const city = address?.city || address?.town || address?.village || "";
-          const district = address?.county || address?.state_district || "";
-          const state = address?.state || "";
-
-          const fullLocation = [city, district, state]
-            .filter((part) => part && part !== city)
-            .join(", ");
-
-          setProfileData((prev) => ({
-            ...prev,
-            location: city ? `${city}, ${fullLocation}` : fullLocation || "Unknown",
-          }));
-
-          alert("📍 Location updated!");
-        } catch (err) {
-          alert("❌ Could not fetch location");
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          navigate("/login");
+          return;
         }
-      },
-      (err) => {
-        alert("❌ Location access denied.");
-        console.error(err);
+
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setProfileData(userDoc.data());
+        } else {
+          navigate("/profile-edit");
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
       }
+    };
+
+    fetchUserData();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
     );
-  };
-
-  // 🔴 Manual Location
-  const handleManualCitySearch = async (query) => {
-    setManualCityInput(query);
-    if (query.length < 3) return;
-
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=7`
-      );
-      const data = await res.json();
-      setCitySuggestions(data);
-    } catch (err) {
-      console.error("❌ Manual search failed:", err);
-    }
-  };
-
-  const handleCitySelect = (place) => {
-    setProfileData((prev) => ({
-      ...prev,
-      location: place.display_name,
-    }));
-    setCitySuggestions([]);
-    setManualCityInput("");
-    alert("✅ Location selected!");
-  };
+  }
 
   return (
-    <div className="max-w-xl mx-auto p-6 mt-6">
-      <h2 className="text-3xl font-bold text-orange-700 text-center mb-6">👤 User Profile</h2>
-      <div className="bg-white shadow-xl rounded-2xl p-6 transition-all duration-300 border border-gray-200">
-        {isEditing ? (
-          <>
-            <div className="grid grid-cols-1 gap-4">
-              <input
-                type="text"
-                name="name"
-                value={profileData.name}
-                onChange={handleChange}
-                placeholder="Full Name"
-                className="border rounded px-4 py-2"
-              />
-              <input
-                type="text"
-                name="skill"
-                value={profileData.skill}
-                onChange={handleChange}
-                placeholder="Skill"
-                className="border rounded px-4 py-2"
-              />
-              <input
-                type="text"
-                name="rating"
-                value={profileData.rating}
-                onChange={handleChange}
-                placeholder="Rating"
-                className="border rounded px-4 py-2"
-              />
-              <input
-                type="text"
-                name="phone"
-                value={profileData.phone}
-                onChange={handleChange}
-                placeholder="Phone Number"
-                className="border rounded px-4 py-2"
-              />
-              <input
-                type="email"
-                name="email"
-                value={profileData.email}
-                onChange={handleChange}
-                placeholder="Email"
-                className="border rounded px-4 py-2"
-              />
-              <input
-                type="text"
-                name="experience"
-                value={profileData.experience}
-                onChange={handleChange}
-                placeholder="Experience"
-                className="border rounded px-4 py-2"
-              />
-              <input
-                type="number"
-                name="age"
-                value={profileData.age}
-                onChange={handleChange}
-                placeholder="Age"
-                className="border rounded px-4 py-2"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+      <div className="max-w-4xl mx-auto p-4">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl p-8 text-white mb-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4">
+            <button
+              onClick={() => navigate("/profile-edit")}
+              className="bg-white text-orange-500 px-4 py-2 rounded-lg hover:bg-orange-50 transition-colors duration-300 flex items-center gap-2 shadow-lg"
+            >
+              <FaEdit /> Edit Profile
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 bg-orange-200 rounded-full flex items-center justify-center text-orange-600 text-4xl font-bold">
+              {profileData.name ? profileData.name[0].toUpperCase() : "?"}
             </div>
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{profileData.name}</h1>
+              <div className="flex items-center gap-4 text-orange-100">
+                <span className="flex items-center gap-1">
+                  <FaBriefcase /> {profileData.skill}
+                </span>
+                <span className="flex items-center gap-1">
+                  <FaStar className="text-yellow-300" /> {profileData.rating}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* Location controls */}
-            <div className="mt-4">
-              <label className="text-sm font-semibold text-gray-700 mb-1 block">
-                📍 Location
-              </label>
-              <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                <button
-                  onClick={handleGetCurrentLocation}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  <FaMapMarkerAlt /> Use My Location
-                </button>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Contact Information */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">Contact Information</h2>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <FaPhone className="text-orange-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Phone</div>
+                  <div className="font-medium">{profileData.phone}</div>
+                </div>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search city, town, village..."
-                value={manualCityInput}
-                onChange={(e) => handleManualCitySearch(e.target.value)}
-                className="w-full border rounded px-4 py-2"
-              />
-              {citySuggestions.length > 0 && (
-                <ul className="bg-white border rounded mt-2 max-h-40 overflow-y-auto">
-                  {citySuggestions.map((place, idx) => (
-                    <li
-                      key={idx}
-                      className="px-4 py-2 hover:bg-gray-100 text-sm cursor-pointer"
-                      onClick={() => handleCitySelect(place)}
-                    >
-                      {place.display_name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleSave}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
-              >
-                <FaSave /> Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="text-lg font-medium text-gray-800 space-y-2">
-              <p>👤 <strong>Name:</strong> {profileData.name}</p>
-              <p>🔧 <strong>Skill:</strong> {profileData.skill}</p>
-              <p>⭐ <strong>Rating:</strong> {profileData.rating}</p>
-            </div>
-
-            {showDetails && (
-              <div className="text-sm text-gray-700 mt-4 space-y-1">
-                <p>📞 Phone: {profileData.phone}</p>
-                <p>📧 Email: {profileData.email}</p>
-                <p>🛠 Experience: {profileData.experience}</p>
-                <p>🎂 Age: {profileData.age} yrs</p>
-                <p>📍 Location: {profileData.location}</p>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <FaEnvelope className="text-orange-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Email</div>
+                  <div className="font-medium">{profileData.email}</div>
+                </div>
               </div>
-            )}
 
-            <div className="flex gap-4 mt-5">
-              <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="text-blue-600 text-sm hover:underline"
-              >
-                {showDetails ? "Hide Details" : "View All Details"}
-              </button>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-orange-600 text-sm hover:underline flex items-center gap-1"
-              >
-                <FaEdit /> Edit Profile
-              </button>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <FaMapMarkerAlt className="text-orange-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Location</div>
+                  <div className="font-medium">{profileData.location}</div>
+                </div>
+              </div>
             </div>
-          </>
-        )}
+          </div>
+
+          {/* Professional Details */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">Professional Details</h2>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <FaBriefcase className="text-orange-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Experience</div>
+                  <div className="font-medium">{profileData.experience}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <FaBirthdayCake className="text-orange-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Age</div>
+                  <div className="font-medium">{profileData.age} years</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <FaStar className="text-orange-500" />
+                <div>
+                  <div className="text-sm text-gray-500">Rating</div>
+                  <div className="font-medium flex items-center gap-1">
+                    {profileData.rating} <FaStar className="text-yellow-400 text-sm" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
